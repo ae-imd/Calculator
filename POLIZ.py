@@ -22,8 +22,18 @@ def is_number(num):
         return False
 
 def tokenize(expr: str) -> list:
+    expr = expr.replace(' ', '')
+
+    if not expr:
+        raise ValueError("Empty expression")
+
     pattern = r'\d+\.?\d*|[()+*/^-]|NOT|AND|XOR|OR|LSH|RSH|ROL|ROR|DIV|MOD|ROOT|EXP|LN|LOG|SIN|COS|TAN|COT|ASIN|ACOS|ATAN|ACOT|FLOOR|CEILING|SQRT|CBRT|SQR|CBR'
     tokens = re.findall(pattern, expr.upper())
+
+    remaining = re.sub(pattern, '', expr.upper())
+    if remaining:
+        raise ValueError(f"Invalid characters: {remaining}")
+    
     return tokens
 
 def process_unary_operations(tokens) -> list:
@@ -32,11 +42,15 @@ def process_unary_operations(tokens) -> list:
     for i, token in enumerate(tokens):
         if token == '-':
             if i == 0 or tokens[i-1] in '(+-*/^' or tokens[i-1] in ['NOT', 'AND', 'XOR', 'OR', 'LSH', 'RSH', 'ROL', 'ROR'] or tokens[i-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR']:
+                if i + 1 < len(tokens) and tokens[i+1] in ['+', '-', '*', '/', '^']:
+                    raise ValueError('Wrong syntax')
                 res.append('u-')
             else:
                 res.append('-')
         elif token == '+':
             if i == 0 or tokens[i-1] in '(+-*/^' or tokens[i-1] in ['NOT', 'AND', 'XOR', 'OR', 'LSH', 'RSH', 'ROL', 'ROR'] or tokens[i-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR']:
+                if i + 1 < len(tokens) and tokens[i+1] in ['+', '-', '*', '/', '^']:
+                    raise ValueError('Wrong syntax')
                 res.append('u+')
             else:
                 res.append('+')
@@ -97,22 +111,27 @@ def calculate_postfix_expression(postfix: list) -> float:
                 case 'u-':
                     if st:
                         st.append(-st.pop())
+                    else: raise ValueError("Wrong syntax")
                 case 'u+':
                     if st:
                         st.append(+st.pop())
+                    else: raise ValueError("Wrong syntax")
                 case 'NOT':
                     if st:
                         st.append(~int(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case '^':
                     if len(st) >= 2:
                         b = st.pop()
                         a = st.pop()
                         st.append(a ** b)
+                    else: raise ValueError("Wrong syntax")
                 case '*':
                     if len(st) >= 2:
                         b = st.pop()
                         a = st.pop()
                         st.append(a * b)
+                    else: raise ValueError("Wrong syntax")
                 case '/':
                     if len(st) >= 2:
                         b = st.pop()
@@ -120,72 +139,86 @@ def calculate_postfix_expression(postfix: list) -> float:
                         if b == 0:
                             raise ZeroDivisionError("Division by zero")
                         st.append(a / b)
+                    else: raise ValueError("Wrong syntax")
                 case 'DIV':
                     if len(st) >= 2:
                         b = st.pop()
                         a = st.pop()
                         st.append(a // b)
+                    else: raise ValueError("Wrong syntax")
                 case 'MOD':
                     if len(st) >= 2:
                         b = st.pop()
                         a = st.pop()
                         st.append(a % b)
+                    else: raise ValueError("Wrong syntax")
                 case '+':
                     if len(st) >= 2:
                         b = st.pop()
                         a = st.pop()
                         st.append(a + b)
+                    else: raise ValueError("Wrong syntax")
                 case '-':
                     if len(st) >= 2:
                         b = st.pop()
                         a = st.pop()
                         st.append(a - b)
+                    else: raise ValueError("Wrong syntax")
                 case 'LSH':
                     if len(st) >= 2:
                         shift = int(st.pop())
                         a = int(st.pop())
                         st.append(a << shift)
+                    else: raise ValueError("Wrong syntax")
                 case 'RSH':
                     if len(st) >= 2:
                         shift = int(st.pop())
                         a = int(st.pop())
                         st.append(a >> shift)
+                    else: raise ValueError("Wrong syntax")
                 case 'ROL':
                     if len(st) >= 2:
                         shift = int(st.pop())
                         a = int(st.pop())
                         bits = 32
                         st.append((a << shift) | (a >> (bits - shift)))
+                    else: raise ValueError("Wrong syntax")
                 case 'ROR':
                     if len(st) >= 2:
                         shift = int(st.pop())
                         a = int(st.pop())
                         bits = 32
                         st.append((a >> shift) | (a << (bits - shift)))
+                    else: raise ValueError("Wrong syntax")
                 case 'AND':
                     if len(st) >= 2:
                         b = int(st.pop())
                         a = int(st.pop())
                         st.append(a & b)
+                    else: raise ValueError("Wrong syntax")
                 case 'XOR':
                     if len(st) >= 2:
                         b = int(st.pop())
                         a = int(st.pop())
                         st.append(a ^ b)
+                    else: raise ValueError("Wrong syntax")
                 case 'OR':
                     if len(st) >= 2:
                         b = int(st.pop())
                         a = int(st.pop())
                         st.append(a | b)
+                    else: raise ValueError("Wrong syntax")
                 case 'EXP':
                     if st:
                         st.append(math.exp(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case 'LN':
                     if st:
                         x = st.pop()
                         if x <= 0:
                             raise ValueError("Operation LN of a non-positive number")
                         st.append(math.log(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'LOG':
                     if len(st) >= 2:
                         base = st.pop()
@@ -193,59 +226,74 @@ def calculate_postfix_expression(postfix: list) -> float:
                         if x <= 0 or base <= 0 or base == 1:
                             raise ValueError("Invalid values for LOG operation")
                         st.append(math.log(x, base))
+                    else: raise ValueError("Wrong syntax")
                 case 'SIN':
                     if st:
                         st.append(math.sin(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case 'COS':
                     if st:
                         st.append(math.cos(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case 'TAN':
                     if st:
                         x = st.pop()
                         st.append(math.tan(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'COT':
                     if st:
                         x = st.pop()
                         st.append(1 / math.tan(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'ASIN':
                     if st:
                         x = st.pop()
                         st.append(math.asin(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'ACOS':
                     if st:
                         x = st.pop()
                         st.append(math.acos(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'ATAN':
                     if st:
                         st.append(math.atan(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case 'ACOT':
                     if st:
                         x = st.pop()
                         st.append(math.pi/2 - math.atan(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'FLOOR':
                     if st:
                         st.append(math.floor(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case 'CEILING':
                     if st:
                         st.append(math.ceil(st.pop()))
+                    else: raise ValueError("Wrong syntax")
                 case 'SQRT':
                     if st:
                         x = st.pop()
                         if x < 0:
                             raise ValueError("Square root of a negative number")
                         st.append(math.sqrt(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'CBRT':
                     if st:
                         x = st.pop()
                         st.append(math.cbrt(x))
+                    else: raise ValueError("Wrong syntax")
                 case 'SQR':
                     if st:
                         x = st.pop()
                         st.append(x * x)
+                    else: raise ValueError("Wrong syntax")
                 case 'CBR':
                     if st:
                         x = st.pop()
                         st.append(x * x * x)
+                    else: raise ValueError("Wrong syntax")
                 case 'ROOT':
                     if len(st) >= 2:
                         n = st.pop()
@@ -253,6 +301,7 @@ def calculate_postfix_expression(postfix: list) -> float:
                         if x < 0 and n % 2 == 0:
                             raise ValueError("Even root of a negative number")
                         st.append(x ** (1/n))
+                    else: raise ValueError("Wrong syntax")
     
     if len(st) != 1:
         raise ValueError("Invalid expression")

@@ -1,8 +1,8 @@
-import calculator_window as cw
+import calculator as calc
 
 def main():
-    calc = cw.calculator()
-    calc.run()
+    c = calc.calculator()
+    c.run()
 
 if __name__ == '__main__':
     main()
