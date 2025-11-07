@@ -1,7 +1,7 @@
 import calculator_window as cw
 
 def main():
-    cw.init()
+    calc = cw.calculator()
 
 if __name__ == '__main__':
     main()
