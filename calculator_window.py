@@ -12,8 +12,23 @@ class calculator:
         icon = tk.PhotoImage(file='icons/logotype.png')
         self.root.iconphoto(False, icon)
 
-        self.text1 = tk.Text(height=1, width=50, state="disabled")
-        self.text1.pack(pady=20)
+        self.text1 = tk.Text(height=1, width=50, font=("Arial", 12))
+        self.text1.pack(pady=10)
+
+        cursor_frame = tk.Frame(self.root)
+        cursor_frame.pack(pady=5)
+
+        self.left_btn = tk.Button(cursor_frame, text="<--", width=3, 
+                                 command=self.move_cursor_left)
+        self.left_btn.pack(side=tk.LEFT, padx=2)
+        
+        self.right_btn = tk.Button(cursor_frame, text="-->", width=3,
+                                  command=self.move_cursor_right)
+        self.right_btn.pack(side=tk.LEFT, padx=2)
+        
+        self.del_btn = tk.Button(cursor_frame, text="DEL", width=4,
+                                command=self.delete_char)
+        self.del_btn.pack(side=tk.LEFT, padx=2)
 
         main_frame = tk.Frame(self.root)
         main_frame.pack(pady=10)
@@ -29,7 +44,7 @@ class calculator:
                                         state="disabled", font=("Consolas", 9))
         self.ns_text.grid(row=1, column=0)
 
-        # ao = aritmetic operations
+        # ao = arithmetic operations
         ao_frame = tk.Frame(main_frame)
         ao_frame.pack(side=tk.RIGHT, padx=10)
 
@@ -40,7 +55,7 @@ class calculator:
                    "4", "5", "6", "-", 
                    "1", "2", "3", "*", 
                    "0", "DIV", "MOD", "/",
-                   "SQRT", "CBRT",
+                   "SQRT", "CBRT", "(", ")",
                    "CLEAR"]
         
         for i, s in enumerate(symbols):
@@ -51,45 +66,93 @@ class calculator:
                 btn = tk.Button(ao_frame, text=s, width=6, height=2, command=self.clear_text)
             else:
                 btn = tk.Button(ao_frame, text=s, width=6, height=2,
-                              command=lambda ss = s + ' ': self.press_button(ss))
+                              command=lambda ss=s: self.press_button(ss))
             btn.grid(row=row, column=col, padx=2, pady=2)
             
+        self.root.bind('<Left>', self.move_cursor_left_key)
+        self.root.bind('<Right>', self.move_cursor_right_key)
+        self.root.bind('<BackSpace>', self.delete_char_key)
         self.root.bind('<Return>', self.calculate)
-
+        
+        self.text1.focus_set()
         self.last_result = None
+
     def run(self):
         self.root.mainloop()
 
     def press_button(self, text: str):
-        self.text1.config(state='normal')
-        self.text1.insert(tk.END, text)
-        self.text1.config(state='disabled')
-    def clear_text(self):
-        self.text1.config(state='normal')
-        self.text1.delete("1.0", tk.END)
-        self.text1.config(state='disabled')
+        functions_with_brackets = ["SQRT", "CBRT"]
+        
+        if text in functions_with_brackets:
+            text_to_insert = f"{text}()"
+            cursor_offset = len(text) + 1
+        else:
+            text_to_insert = text
+            cursor_offset = len(text_to_insert)
 
+        cursor_pos = self.text1.index(tk.INSERT)
+        self.text1.insert(cursor_pos, text_to_insert)
+
+        if text in functions_with_brackets:
+            self.text1.mark_set(tk.INSERT, f"{cursor_pos}+{len(text) + 1}c")
+        else:
+            self.text1.mark_set(tk.INSERT, f"{cursor_pos}+{cursor_offset}c")
+        
+        self.text1.focus_set()
+
+    def move_cursor_left(self, event=None):
+        current_pos = self.text1.index(tk.INSERT)
+        if current_pos != "1.0":
+            new_pos = self.text1.index(f"{current_pos}-1c")
+            self.text1.mark_set(tk.INSERT, new_pos)
+            self.text1.focus_set()
+
+    def move_cursor_right(self, event=None):
+        current_pos = self.text1.index(tk.INSERT)
+        end_pos = self.text1.index(tk.END)
+        if current_pos != end_pos:
+            new_pos = self.text1.index(f"{current_pos}+1c")
+            self.text1.mark_set(tk.INSERT, new_pos)
+            self.text1.focus_set()
+
+    def move_cursor_left_key(self, event):
+        self.move_cursor_left()
+        return "break"
+
+    def move_cursor_right_key(self, event):
+        self.move_cursor_right()
+        return "break"
+    
+    def delete_char(self, event=None):
+        cursor_pos = self.text1.index(tk.INSERT)
+        if cursor_pos != "1.0":
+            delete_pos = self.text1.index(f"{cursor_pos}-1c")
+            self.text1.delete(delete_pos, cursor_pos)
+            self.text1.focus_set()
+
+    def delete_char_key(self, event):
+        self.delete_char()
+        return "break"
+
+    def clear_text(self):
+        self.text1.delete("1.0", tk.END)
         self.ns_text.config(state='normal')
         self.ns_text.delete("1.0", tk.END)
         self.ns_text.config(state='disabled')
-
         self.last_result = None
+        self.text1.focus_set()
 
     def calculate(self, event=None):
         try:
             expr = self.text1.get("1.0", tk.END).strip()
             self.clear_text()
-            self.text1.config(state='normal')
             
             if not expr:
                 self.text1.insert(tk.END, "Insert an expression")
                 return
-            if not self.is_safe_expression(expr):
-                self.text1.insert(tk.END, "It's the wrong expression")
-                return
             
             res = POLIZ.calculate_infix_expression(expr)
-            self.text1.insert(tk.END, res)
+            self.text1.insert(tk.END, str(res))
             self.last_result = res
 
             self.show_all_systems()
@@ -100,12 +163,12 @@ class calculator:
         except NameError:
             self.text1.insert(tk.END, "Wrong symbols")
         except Exception as e:
-            self.text1.insert(tk.END, "Error")
+            self.text1.insert(tk.END, f"Error: {str(e)}")
         finally:
-            self.text1.config(state='disabled')
+            self.text1.focus_set()
     
     def is_safe_expression(self, expr: str):
-        pattern = r'^[0-9+\-*/().^ A-Za-z]+$'
+        pattern = r'^[0-9+\-*/().^ A-Z]+$'
         return bool(re.match(pattern, expr))
     
     def show_all_systems(self):
@@ -124,12 +187,8 @@ class calculator:
         else:
             self.update_ns_text("No result\nCalculate first!")
 
-    def clear_ns_text(self):
-        self.update_ns_text("")
-
     def update_ns_text(self, text: str):
         self.ns_text.config(state='normal')
         self.ns_text.delete("1.0", tk.END)
         self.ns_text.insert("1.0", text)
         self.ns_text.config(state='disabled')
-    
