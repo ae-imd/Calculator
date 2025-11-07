@@ -1,6 +1,7 @@
 import tkinter as tk
 import re
 import number_systems as ns
+import POLIZ
 
 class calculator:
     def __init__(self):
@@ -38,17 +39,19 @@ class calculator:
         symbols = ["7", "8", "9", "+", 
                    "4", "5", "6", "-", 
                    "1", "2", "3", "*", 
-                   "0", "C", " ", "/"]
+                   "0", "DIV", "MOD", "/",
+                   "SQRT", "CBRT",
+                   "CLEAR"]
         
         for i, s in enumerate(symbols):
             row = i // 4 + 1
             col = i % 4
             
-            if s == "C":
+            if s == "CLEAR":
                 btn = tk.Button(ao_frame, text=s, width=6, height=2, command=self.clear_text)
             else:
                 btn = tk.Button(ao_frame, text=s, width=6, height=2,
-                              command=lambda ss = s: self.press_button(ss))
+                              command=lambda ss = s + ' ': self.press_button(ss))
             btn.grid(row=row, column=col, padx=2, pady=2)
             
         self.root.bind('<Return>', self.calculate)
@@ -85,7 +88,7 @@ class calculator:
                 self.text1.insert(tk.END, "It's the wrong expression")
                 return
             
-            res = eval(expr)
+            res = POLIZ.calculate_infix_expression(expr)
             self.text1.insert(tk.END, res)
             self.last_result = res
 
@@ -102,11 +105,10 @@ class calculator:
             self.text1.config(state='disabled')
     
     def is_safe_expression(self, expr: str):
-        pattern: str = r'^-?\d+([\+\-\*\\]\d+)*$' # The special pattern for math expressions
+        pattern = r'^[0-9+\-*/().^ A-Za-z]+$'
         return bool(re.match(pattern, expr))
     
     def show_all_systems(self):
-        """Показывает представление числа во всех системах счисления"""
         if self.last_result is not None:
             try:
                 decimal = str(self.last_result)
@@ -123,7 +125,6 @@ class calculator:
             self.update_ns_text("No result\nCalculate first!")
 
     def clear_ns_text(self):
-        """Очищает поле систем счисления"""
         self.update_ns_text("")
 
     def update_ns_text(self, text: str):
