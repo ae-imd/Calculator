@@ -14,6 +14,13 @@ PRIORITY = {
     'FLOOR': 10, 'CEILING': 10, 'SQRT': 10, 'CBRT': 10, 'SQR': 10, 'CBR': 10,
 }
 
+CONSTANTS = {
+    'E': math.e,
+    'PI': math.pi,
+    'PHI': (1 + math.sqrt(5)) / 2
+}
+
+
 def is_number(num):
     try:
         float(num)
@@ -27,7 +34,7 @@ def tokenize(expr: str) -> list:
     if not expr:
         raise ValueError("Empty expression")
 
-    pattern = r'\d+\.?\d*|[()+*/^-]|NOT|AND|XOR|OR|LSH|RSH|ROL|ROR|DIV|MOD|ROOT|EXP|LN|LOG|SIN|COS|TAN|COT|ASIN|ACOS|ATAN|ACOT|FLOOR|CEILING|SQRT|CBRT|SQR|CBR'
+    pattern = r'\d+\.?\d*|[()+*/^,\-]|NOT|AND|XOR|OR|LSH|RSH|ROL|ROR|DIV|MOD|ROOT|EXP|LN|LOG|SIN|COS|TAN|COT|ASIN|ACOS|ATAN|ACOT|FLOOR|CEILING|SQRT|CBRT|SQR|CBR|E|PI|PHI'
     tokens = re.findall(pattern, expr.upper())
 
     remaining = re.sub(pattern, '', expr.upper())
@@ -41,15 +48,15 @@ def process_unary_operations(tokens) -> list:
     
     for i, token in enumerate(tokens):
         if token == '-':
-            if i == 0 or tokens[i-1] in '(+-*/^' or tokens[i-1] in ['NOT', 'AND', 'XOR', 'OR', 'LSH', 'RSH', 'ROL', 'ROR'] or tokens[i-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR']:
-                if i + 1 < len(tokens) and tokens[i+1] in ['+', '-', '*', '/', '^']:
+            if i == 0 or tokens[i-1] in '(+-*/^,' or tokens[i-1] in ['NOT', 'AND', 'XOR', 'OR', 'LSH', 'RSH', 'ROL', 'ROR'] or tokens[i-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR', 'DIV', 'MOD']:
+                if i + 1 < len(tokens) and tokens[i+1] in ['+', '-', '*', '/', '^', ',']:
                     raise ValueError('Wrong syntax')
                 res.append('u-')
             else:
                 res.append('-')
         elif token == '+':
-            if i == 0 or tokens[i-1] in '(+-*/^' or tokens[i-1] in ['NOT', 'AND', 'XOR', 'OR', 'LSH', 'RSH', 'ROL', 'ROR'] or tokens[i-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR']:
-                if i + 1 < len(tokens) and tokens[i+1] in ['+', '-', '*', '/', '^']:
+            if i == 0 or tokens[i-1] in '(+-*/^,' or tokens[i-1] in ['NOT', 'AND', 'XOR', 'OR', 'LSH', 'RSH', 'ROL', 'ROR'] or tokens[i-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR', 'DIV', 'MOD']:
+                if i + 1 < len(tokens) and tokens[i+1] in ['+', '-', '*', '/', '^', ',']:
                     raise ValueError('Wrong syntax')
                 res.append('u+')
             else:
@@ -66,10 +73,10 @@ def infix_to_postfix(expr: str) -> list:
     tokens = process_unary_operations(tokens)
 
     for token in tokens:
-        if is_number(token):
+        if is_number(token) or token in CONSTANTS:
             res.append(token)
         
-        elif token in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR']:
+        elif token in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR', 'DIV', 'MOD', 'LSH', 'RSH', 'ROL', 'ROR', 'AND', 'XOR', 'OR']:
             st.append(token)
         
         elif token == '(':
@@ -82,7 +89,7 @@ def infix_to_postfix(expr: str) -> list:
                 raise ValueError('Unbalanced brackets')
             st.pop()  # Delete '('
             
-            if st and st[-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR']:
+            if st and st[-1] in ['ROOT', 'EXP', 'LN', 'LOG', 'SIN', 'COS', 'TAN', 'COT', 'ASIN', 'ACOS', 'ATAN', 'ACOT', 'FLOOR', 'CEILING', 'SQRT', 'CBRT', 'SQR', 'CBR', 'DIV', 'MOD', 'LSH', 'RSH', 'ROL', 'ROR', 'AND', 'XOR', 'OR']:
                 res.append(st.pop())
         
         elif token in PRIORITY:
@@ -104,8 +111,8 @@ def calculate_postfix_expression(postfix: list) -> float:
     
     for token in postfix:
 
-        if is_number(token):
-            st.append(float(token))
+        if is_number(token): st.append(float(token))
+        elif token in CONSTANTS: st.append(CONSTANTS[token])
         else:
             match(token):
                 case 'u-':
@@ -300,7 +307,7 @@ def calculate_postfix_expression(postfix: list) -> float:
                         x = st.pop()
                         if x < 0 and n % 2 == 0:
                             raise ValueError("Even root of a negative number")
-                        st.append(x ** (1/n))
+                        st.append(pow(x, 1/n))
                     else: raise ValueError("Wrong syntax")
     
     if len(st) != 1:
